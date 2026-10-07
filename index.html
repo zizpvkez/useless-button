@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Useless Button</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%23d92b2b%22/></svg>">
+<style>
+:root{--bg:#ece8f2;--fg:#1c1830;--card:#fff}
+@media(prefers-color-scheme:dark){:root{--bg:#171428;--fg:#f0ecff;--card:#26213d}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:"Trebuchet MS",Verdana,sans-serif;overflow:hidden;transition:background .6s,filter .6s}
+#stage{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:16px;text-align:center;transition:transform .7s}
+h1{margin:0;font-size:clamp(1.6rem,6vw,3rem);letter-spacing:.02em;display:none}
+h1 span{display:inline-block;transition:transform 1.4s cubic-bezier(.5,0,1,.6),opacity 1.4s}
+h1 span.fall{transform:translateY(110vh) rotate(80deg);opacity:0}
+#btns{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;max-width:90vw}
+.b{width:150px;height:150px;border-radius:50%;border:0;cursor:pointer;color:#fff;font:700 1.15rem "Trebuchet MS",Verdana,sans-serif;background:radial-gradient(circle at 35% 28%,#ff7a6b,#d92b2b 55%,#8f1414);box-shadow:0 9px 0 #6d0e0e,0 16px 24px rgba(0,0,0,.35);transition:transform .25s,box-shadow .1s;touch-action:manipulation}
+.b:active{box-shadow:0 2px 0 #6d0e0e,0 5px 10px rgba(0,0,0,.35);margin-top:7px}
+.b:focus-visible{outline:4px solid #ffd23f;outline-offset:6px}
+#msg{min-height:3.2em;max-width:30ch;font-size:1.25rem;line-height:1.35}
+#msg.pop{animation:pop .35s}
+@keyframes pop{0%{transform:scale(.7)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+#count{font-size:.9rem;opacity:.65}
+.fx{position:fixed;top:-60px;font-size:2rem;pointer-events:none;animation:drop linear forwards;z-index:5}
+@keyframes drop{to{transform:translateY(115vh) rotate(360deg)}}
+.ov{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:20px;text-align:center}
+#bsod{background:#0a4fb4;color:#fff;font-family:monospace;font-size:1.1rem;flex-direction:column;gap:12px}
+#cert{background:rgba(0,0,0,.6)}
+.card{background:var(--card);color:var(--fg);border:6px double #c9a227;border-radius:10px;padding:26px 22px;max-width:420px;width:100%;display:flex;flex-direction:column;gap:12px}
+.card h2{margin:0;font-size:1.5rem}
+.card p{margin:0}
+.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.row button{padding:10px 16px;border-radius:8px;border:2px solid var(--fg);background:transparent;color:var(--fg);font:700 1rem "Trebuchet MS",Verdana,sans-serif;cursor:pointer}
+#banner{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:#ffd23f;color:#1c1830;padding:8px 16px;border-radius:20px;font-weight:700;z-index:15;display:none}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
+</style>
+</head>
+<body>
+<div id="banner"></div>
+<div id="stage">
+  <h1 id="title"></h1>
+  <div id="btns"><button class="b">Press</button></div>
+  <div id="msg" aria-live="polite"></div>
+  <div id="count"></div>
+</div>
+<div class="ov" id="bsod"><div style="font-size:3rem">:(</div><div>Your button ran into a problem.<br>It is crying. Collecting tears… <span id="tear">0</span>%</div></div>
+<div class="ov" id="cert"><div class="card">
+  <h2>Certificate of Pointlessness</h2>
+  <p>This certifies that you are</p>
+  <p><b id="ctitle"></b></p>
+  <p id="cstats"></p>
+  <div class="row"><button id="keep">Keep pressing</button><button id="again">Again?</button><button id="share">Share</button></div>
+</div></div>
+<script>
+(function(){
+var n=0,scale=1,onBreak=false,locked=false,t0=Date.now(),ch=0;
+var $=function(i){return document.getElementById(i)};
+var msg=$('msg'),btns=$('btns'),stage=$('stage');
+var best=0;try{best=+localStorage.getItem('ub_best')||0}catch(e){}
+function say(t){msg.textContent=t;msg.classList.remove('pop');void msg.offsetWidth;msg.classList.add('pop')}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function rain(list,k){for(var i=0;i<(k||18);i++){var s=document.createElement('span');s.className='fx';s.textContent=pick(list);s.style.left=Math.random()*96+'vw';s.style.animationDuration=(2+Math.random()*2.5)+'s';s.style.animationDelay=Math.random()*1.2+'s';document.body.appendChild(s);setTimeout(function(x){x.remove()},6000,s)}}
+function setScale(v){scale=v;layout()}
+function layout(){[].forEach.call(btns.children,function(b){b.style.transform='scale('+scale+')'})}
+function tilt(d){stage.style.transform='rotate('+d+'deg)'}
+function banner(t){var b=$('banner');b.textContent=t;b.style.display='block';setTimeout(function(){b.style.display='none'},2600)}
+function hold(ms,f){locked=true;setTimeout(function(){locked=false;if(f)f()},ms)}
+
+var story=[
+ function(){say('Ow.')},
+ function(){say("Sorry! I'm so sorry. Please don't do that again.")},
+ function(){say('Please be gentle with me.');setScale(.55)},
+ function(){say('It is raining socks. This is your fault.');setScale(.8);rain(['🧦'],20)},
+ function(){say('Ordering you an imaginary pizza… 🍕')},
+ function(){say('Your pizza took a left turn and is now lost in Narnia. 🦁')},
+ function(){say('Installing a very important update… stuck at 99%.')},
+ function(){bsod()},
+ function(){say('I am filing a complaint with HR.')},
+ function(){say('HR (a plant 🪴) says: “Have you tried not pressing?”')},
+ function(){say('I am going to the gym. 🏋️ Nobody can stop me.')},
+ function(){say('…I fell over.');tilt(90)},
+ function(){coffee()}
+];
+function bsod(){var o=$('bsod'),t=$('tear'),p=0;o.style.display='flex';locked=true;var i=setInterval(function(){p+=7;t.textContent=Math.min(p,100);if(p>=100){clearInterval(i);o.style.display='none';locked=false;say('Back. Do not mention it.')}},120)}
+function coffee(){tilt(0);onBreak=true;say('☕ Coffee break. Back in a moment.');setTimeout(function(){onBreak=false;say('Fine. I am back. Press me. See if I care.')},5000)}
+
+var apol=['Sorry.','I am really sorry.','I am so, so sorry.','Please forgive my entire family.','I apologise to your ancestors.','I apologise to the sun.','I am writing you a 40 page apology.'];
+var S=['The button','Your finger','A nearby pigeon','The Wi-Fi','Gary from accounting','The concept of Tuesday','A very small wizard','Your left sock'];
+var A=['has filed a complaint about','is now legally married to','just ordered 400 pounds of','is teaching yoga to','has been replaced by','is suing','accidentally became'];
+var O=['a haunted spreadsheet','seven angry geese','the moon\'s lawyer','a lukewarm lasagna','time itself','a confused lighthouse','your neighbour\'s cat','the number 11'];
+var T=['This is fine.','Please clap.','Nobody asked.','We regret everything.','Ow.','Press again to make it worse.','No refunds.'];
+function sentence(){return (Math.random()<.35?pick(apol)+' ':'')+pick(S)+' '+pick(A)+' '+pick(O)+'. '+pick(T)}
+
+var fxs=[function(){rain(['🦆'])},function(){rain(['🧀'])},function(){rain(['🍕'],14)},function(){rain(['🧦'])},
+ function(){tilt((Math.random()*16-8).toFixed(1))},
+ function(){fallLetters()},
+ function(){setScale(.5+Math.random()*.9)},
+ function(){document.body.style.filter='hue-rotate('+Math.floor(Math.random()*360)+'deg)'}];
+function fallLetters(){var sp=$('title').children;for(var i=0;i<3;i++){var s=sp[Math.floor(Math.random()*sp.length)];if(s)s.classList.add('fall')}setTimeout(function(){[].forEach.call(sp,function(s){s.classList.remove('fall')})},3500)}
+
+var run=false;
+var chapters=[
+ ['Chapter 1: Freedom',function(){var t=$('title');t.innerHTML='The Useless Button'.split('').map(function(c){return '<span>'+(c==' '?'&nbsp;':c)+'</span>'}).join('');t.style.display='block'}],
+ ['Chapter 2: Cloning',function(){clone()}],
+ ['Chapter 3: Pizza wallpaper',function(){document.body.style.backgroundImage='radial-gradient(circle,#f2b84b 0 9px,transparent 10px),radial-gradient(circle,#c0392b 0 5px,transparent 6px)';document.body.style.backgroundSize='46px 46px,23px 23px'}],
+ ['Chapter 4: Upside down',function(){document.documentElement.style.transform='rotate(180deg)'}],
+ ['Chapter 5: The shy button',function(){run=true}],
+ ['Chapter 6: Disco',function(){setInterval(function(){document.body.style.filter='hue-rotate('+Math.floor(Math.random()*360)+'deg)'},900)}],
+ ['Chapter 7: Mitosis',function(){clone();clone()}]
+];
+function clone(){if(btns.children.length>=7)return;var b=document.createElement('button');b.className='b';b.textContent='Press';b.addEventListener('click',press);b.addEventListener('pointerenter',dodge);btns.appendChild(b);layout()}
+function dodge(e){if(!run||Math.random()<.4)return;var b=e.currentTarget;b.style.translate=(Math.random()*80-40)+'px '+(Math.random()*40-20)+'px'}
+
+var titles=['Certified Pointless','Senior Button Abuser','Doctor of Needless Clicking','Grand Marshal of Nothing','Archduke of Wasted Time','Honorary Citizen of Narnia','Ancient One Who Pressed'];
+function certTitle(){var tier=n===30?0:n/50;return tier<titles.length?titles[tier]:titles[titles.length-1]+' ×'+(tier-titles.length+2)}
+function cert(){var title=certTitle();$('ctitle').textContent=title;var s=Math.round((Date.now()-t0)/1000);$('cstats').textContent=n+' presses in '+s+' seconds. Best run: '+Math.max(best,n)+'. Achievement: none.';$('cert').style.display='flex';locked=true;cert.title=title}
+
+function press(){
+ if(locked)return;
+ n++;$('count').textContent=n+(n===1?' press':' presses');
+ if(n>best){best=n;try{localStorage.setItem('ub_best',best)}catch(e){}}
+ if(onBreak){say("I'm on break!");return}
+ if(n<=story.length){story[n-1]();return}
+ if(n>=20&&n%10===0){var k=n/10-2,c=chapters[k]||['Chapter '+(k+1)+': More chaos',function(){clone();fxs[Math.floor(Math.random()*fxs.length)]()}];banner(c[0]);c[1]()}
+ else{say(sentence());pick(fxs)()}
+ if(n===30||(n>=50&&n%50===0))setTimeout(cert,700);
+}
+btns.children[0].addEventListener('click',press);
+btns.children[0].addEventListener('pointerenter',dodge);
+$('keep').onclick=function(){$('cert').style.display='none';locked=false;say('Wow. Still here?')};
+$('again').onclick=function(){location.reload()};
+$('share').onclick=function(){var t='I pressed a useless button '+n+' times and became “'+cert.title+'”. Your turn: '+location.href;
+ if(navigator.share){navigator.share({text:t}).catch(function(){})}
+ else if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){$('share').textContent='Copied!'}).catch(function(){})}};
+})();
+</script>
+</body>
+</html>
